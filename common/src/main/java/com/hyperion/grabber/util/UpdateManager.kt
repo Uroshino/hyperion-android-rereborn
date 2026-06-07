@@ -36,7 +36,7 @@ class UpdateManager(private val context: Context) {
             
             val uri = Uri.parse(downloadUrl)
             val request = DownloadManager.Request(uri).apply {
-                setTitle("Hyperion Grabber Update")
+                setTitle("Hyperion reGrabber Update")
                 setDescription("Downloading $versionName")
                 setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)

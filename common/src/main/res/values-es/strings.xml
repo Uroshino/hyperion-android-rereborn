@@ -7,7 +7,7 @@
     <item>30 fps</item>
     <item>60 fps</item>
   </string-array>
-  <string name="app_name">Hyperion Grabber</string>
+  <string name="app_name">Hyperion reGrabber</string>
   <string name="pref_title">Configuraciones</string>
   <string name="enabled">Habilitado</string>
   <string name="disabled">Discapacitado</string>

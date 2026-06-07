@@ -60,7 +60,7 @@ public class PermissionHelper {
             context.startActivity(intent);
         } catch (Exception e) {
             Log.e(TAG, "Cannot open app settings", e);
-            Toast.makeText(context, "Please open Settings > Apps > Hyperion Grabber manually", Toast.LENGTH_LONG).show();
+            Toast.makeText(context, "Please open Settings > Apps > Hyperion reGrabber manually", Toast.LENGTH_LONG).show();
         }
     }
     
@@ -71,7 +71,7 @@ public class PermissionHelper {
                 "Your TV may be blocking the permission dialog.\n\n" +
                 "SOLUTIONS:\n\n" +
                 "1. APP PERMISSIONS:\n" +
-                "   Settings > Apps > Hyperion Grabber > Permissions\n\n" +
+                "   Settings > Apps > Hyperion reGrabber > Permissions\n\n" +
                 "2. AUTO-START (TCL/Smart TVs):\n" +
                 "   Settings > Privacy > Special app access > Auto-start\n" +
                 "   OR Settings > Apps > App management\n\n" +

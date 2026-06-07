@@ -60,6 +60,7 @@ public class HyperionScreenService extends Service {
     private int mHorizontalLEDCount;
     private int mVerticalLEDCount;
     private boolean mSendAverageColor;
+    private int mBlackHoldMs;
     private boolean mWledEnabled;
     private String mWledIp;
     private HyperionScreenEncoder mHyperionEncoder;
@@ -142,6 +143,7 @@ public class HyperionScreenService extends Service {
         mHorizontalLEDCount = prefs.getInt(R.string.pref_key_x_led);
         mVerticalLEDCount = prefs.getInt(R.string.pref_key_y_led);
         mSendAverageColor = prefs.getBoolean(R.string.pref_key_use_avg_color);
+        mBlackHoldMs = prefs.getInt(R.string.pref_key_black_hold) * 1000; // stored in seconds
         mReconnectEnabled = prefs.getBoolean(R.string.pref_key_reconnect);
         mWledEnabled = prefs.getBoolean(R.string.pref_key_wled_enabled);
         mWledIp = prefs.getString(R.string.pref_key_wled_ip, null);
@@ -381,7 +383,7 @@ public class HyperionScreenService extends Service {
             window.getDefaultDisplay().getRealMetrics(metrics);
             
             HyperionGrabberOptions options = new HyperionGrabberOptions(
-                    mHorizontalLEDCount, mVerticalLEDCount, mFrameRate, mSendAverageColor);
+                    mHorizontalLEDCount, mVerticalLEDCount, mFrameRate, mSendAverageColor, mBlackHoldMs);
             
             if (DEBUG) Log.v(TAG, "Creating encoder: " + metrics.widthPixels + "x" + metrics.heightPixels);
             mHyperionEncoder = new HyperionScreenEncoder(

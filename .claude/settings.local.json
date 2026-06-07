@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sed -i 's/Grabber Hyperion/reGrabber Hyperion/g' common/src/main/res/values-fr/strings.xml)",
+      "Bash(sed -i 's|<string name=\"app_name\">هايبريون جرابر</string>|<string name=\"app_name\">هايبريون ريجرابر</string>|' common/src/main/res/values-ar/strings.xml)"
+    ]
+  }
+}

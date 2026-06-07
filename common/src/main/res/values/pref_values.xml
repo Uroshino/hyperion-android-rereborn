@@ -39,4 +39,7 @@
 
     <string name="pref_key_use_avg_color" translatable="false">pref_key_use_avg_color</string>
     <bool name="pref_default_use_avg_color" translatable="false">false</bool>
+
+    <string name="pref_key_black_hold" translatable="false">pref_key_black_hold</string>
+    <integer name="pref_default_black_hold" translatable="false">2</integer>
 </resources>

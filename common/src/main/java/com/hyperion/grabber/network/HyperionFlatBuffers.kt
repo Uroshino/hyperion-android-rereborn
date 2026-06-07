@@ -2,7 +2,9 @@ package com.hyperion.grabber.common.network
 
 import com.google.flatbuffers.FlatBufferBuilder
 import hyperionnet.*
+import java.io.BufferedOutputStream
 import java.io.IOException
+import java.io.OutputStream
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.nio.ByteBuffer
@@ -12,6 +14,10 @@ class HyperionFlatBuffers(address: String?, port: Int, priority: Int) : Hyperion
     private val mSocket: Socket = Socket()
     private val mPriority: Int
     private val mBuilder: FlatBufferBuilder
+    private val mOut: OutputStream
+    // Reused per-frame so the 60fps send loop allocates nothing for the length prefix.
+    private val mHeader = ByteArray(4)
+    private val mFallbackBuffer = ByteArray(4096)
 
     init {
         mSocket.tcpNoDelay = true // Disable Nagle's algorithm for low latency
@@ -19,6 +25,9 @@ class HyperionFlatBuffers(address: String?, port: Int, priority: Int) : Hyperion
         mSocket.receiveBufferSize = 4096
         mSocket.connect(InetSocketAddress(address, port), TIMEOUT)
         mSocket.soTimeout = 10 // Very short timeout for non-blocking behavior
+        // Buffer the output so the 4-byte header and a whole capture frame (max 128*72*3 ≈ 27KB
+        // plus flatbuffer overhead) are flushed as a single write per frame.
+        mOut = BufferedOutputStream(mSocket.getOutputStream(), 49152)
         mPriority = priority
         mBuilder = FlatBufferBuilder(1024)
         register()
@@ -35,7 +44,7 @@ class HyperionFlatBuffers(address: String?, port: Int, priority: Int) : Hyperion
     }
 
     override fun isConnected(): Boolean {
-        return mSocket.isConnected
+        return mSocket.isConnected && !mSocket.isClosed
     }
 
     @Throws(IOException::class)
@@ -91,25 +100,35 @@ class HyperionFlatBuffers(address: String?, port: Int, priority: Int) : Hyperion
 
     @Throws(IOException::class)
     private fun sendRequest(bb: ByteBuffer) {
-        if (isConnected()) {
-            val size = bb.remaining()
-            val header = ByteArray(4)
-            header[0] = ((size shr 24) and 0xFF).toByte()
-            header[1] = ((size shr 16) and 0xFF).toByte()
-            header[2] = ((size shr 8) and 0xFF).toByte()
-            header[3] = (size and 0xFF).toByte()
+        if (!isConnected()) return
 
-            val output = mSocket.getOutputStream()
-            output.write(header)
+        val size = bb.remaining()
+        mHeader[0] = ((size shr 24) and 0xFF).toByte()
+        mHeader[1] = ((size shr 16) and 0xFF).toByte()
+        mHeader[2] = ((size shr 8) and 0xFF).toByte()
+        mHeader[3] = (size and 0xFF).toByte()
+        mOut.write(mHeader, 0, 4)
 
-            val data = ByteArray(bb.remaining())
-            bb[data]
-            output.write(data)
-            output.flush()
-            
-            // Don't wait for reply - fire and forget for minimal latency
-            // Replies will be handled asynchronously if needed
+        if (bb.hasArray()) {
+            // Write the FlatBuffer's backing array straight out — no per-frame copy.
+            mOut.write(bb.array(), bb.arrayOffset() + bb.position(), size)
+        } else {
+            // Direct buffer fallback: stream through a reused scratch buffer.
+            val dup = bb.duplicate()
+            var remaining = size
+            while (remaining > 0) {
+                val chunk = if (remaining < mFallbackBuffer.size) remaining else mFallbackBuffer.size
+                dup.get(mFallbackBuffer, 0, chunk)
+                mOut.write(mFallbackBuffer, 0, chunk)
+                remaining -= chunk
+            }
         }
+
+        // The BufferedOutputStream coalesces header + payload into a single segment on flush.
+        mOut.flush()
+
+        // Don't wait for reply - fire and forget for minimal latency.
+        // Replies are drained separately via cleanReplies().
     }
 
     fun cleanReplies() {

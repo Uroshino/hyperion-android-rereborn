@@ -146,6 +146,12 @@ internal class BasicSettingsStepFragment : SettingsStepBaseFragment() {
                 .checked(prefs.getBoolean(CommonR.string.pref_key_use_avg_color))
                 .build()
 
+        val blackHold = unSignedNumberAction(
+                ACTION_BLACK_HOLD,
+                getString(CommonR.string.pref_title_black_hold),
+                prefs.getInt(CommonR.string.pref_key_black_hold).toString()
+        )
+
         actions.add(enterHost)
         actions.add(enterPort)
         actions.add(enterHorizontalLEDCount)
@@ -156,6 +162,7 @@ internal class BasicSettingsStepFragment : SettingsStepBaseFragment() {
         actions.add(reconnectGroup)
         actions.add(captureRate)
         actions.add(averageColor)
+        actions.add(blackHold)
 
     }
 
@@ -185,6 +192,7 @@ internal class BasicSettingsStepFragment : SettingsStepBaseFragment() {
                 val reconnect = findSubActionById(ACTION_RECONNECT)!!.isChecked
                 val reconnectDelay = assertIntValue(ACTION_RECONNECT_DELAY)
                 val useAverageColor = findActionById(ACTION_AVERAGE_COLOR)!!.isChecked
+                val blackHold = assertIntValue(ACTION_BLACK_HOLD)
 
                 prefs.putString(CommonR.string.pref_key_host, host)
                 prefs.putInt(CommonR.string.pref_key_port, port)
@@ -196,6 +204,7 @@ internal class BasicSettingsStepFragment : SettingsStepBaseFragment() {
                 prefs.putString(CommonR.string.pref_key_framerate, frameRate)
                 prefs.putBoolean(CommonR.string.pref_key_reconnect, reconnect)
                 prefs.putBoolean(CommonR.string.pref_key_use_avg_color, useAverageColor)
+                prefs.putInt(CommonR.string.pref_key_black_hold, blackHold)
 
                 val activity = activity
                 activity?.setResult(Activity.RESULT_OK)
@@ -269,6 +278,7 @@ internal class BasicSettingsStepFragment : SettingsStepBaseFragment() {
         private const val ACTION_CAPTURE_RATE = 400L
         private const val ACTION_CAPTURE_RATE_SET_ID = 1500
         private const val ACTION_AVERAGE_COLOR = 600L
+        private const val ACTION_BLACK_HOLD = 500L
 
         private const val ACTION_TEST = 700L
 

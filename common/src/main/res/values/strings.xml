@@ -7,7 +7,7 @@
     <item>30 fps</item>
     <item>60 fps</item>
   </string-array>
-  <string name="app_name">Hyperion Grabber</string>
+  <string name="app_name">Hyperion reGrabber</string>
   <string name="pref_title">Settings</string>
   <string name="enabled">Enabled</string>
   <string name="disabled">Disabled</string>
@@ -15,7 +15,7 @@
   <string name="notification_exit_button">Exit</string>
   <!-- Network scanner -->
   <string name="scanner_title">Hi there!</string>
-  <string name="scanner_description">Hyperion Grabber can scan your network for running servers, so you won\'t have to fiddle with your remote to punch in an ip-address.</string>
+  <string name="scanner_description">Hyperion reGrabber can scan your network for running servers, so you won\'t have to fiddle with your remote to punch in an ip-address.</string>
   <string name="scanner_start_scan_button">Start scan</string>
   <string name="scanner_scan_in_progress_text">Scanning your local network for running hyperion servers %s</string>
   <string name="scanner_scan_in_progress_button">Scanning…</string>
@@ -63,13 +63,15 @@
   <string name="error_invalid_led_counts">Horizontal &amp; vertical LED counts must be set and greater than 0</string>
   <string name="error_server_unreachable">Could not connect to the hyperion server. Check your settings and make sure hyperion is running</string>
   <string name="error_connection_lost">The connection to your hyperion server has been lost, now stopping the grabber</string>
-  <string name="error_foreground_blocked">This device blocks screen capture services. Please check your device settings and allow Hyperion Grabber to run in the foreground, or grant it auto-start permission</string>
+  <string name="error_foreground_blocked">This device blocks screen capture services. Please check your device settings and allow Hyperion reGrabber to run in the foreground, or grant it auto-start permission</string>
   <string name="error_media_projection_denied">Screen recording permission was denied. Please grant permission when prompted</string>
   <string name="toast_must_give_permission">Permission must be granted to record screen data.</string>
   <string name="message_service_started">Press Back to close the app. Your screen content will continue to be sent to Hyperion</string>
   <string name="error_no_host_name_extra">That\'s weird, expected a hostname here</string>
-  <string name="notification_channel_label">Hyperion Grabber Notifications</string>
+  <string name="notification_channel_label">Hyperion reGrabber Notifications</string>
   <string name="notification_description">Currently grabbing screen content</string>
   <string name="pref_title_use_avg_color">Send Average Screen Color</string>
   <string name="pref_summary_use_avg_color">Sends the average color of your device\'s screen rather than an image of it</string>
+  <string name="pref_title_black_hold">Hold LEDs on Black Screen</string>
+  <string name="pref_summary_black_hold">Seconds a fully black screen is shown before the LEDs hold the last colour instead of going dark. Prevents the lights turning off when a video is paused. Set to 0 to hold instantly.</string>
 </resources>

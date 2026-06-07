@@ -18,5 +18,5 @@
   <string name="guidedstep_cancel">إلغاء</string>
   <string name="guidedstep_required">مطلوب</string>
   <!--This is the title for a custom launcher activity - hence including the app's name, with the action noted (toggle the grabber)-->
-  <string name="toggle_activity_label">Hyperion Grabber (Toggle)</string>
+  <string name="toggle_activity_label">Hyperion reGrabber (Toggle)</string>
 </resources>

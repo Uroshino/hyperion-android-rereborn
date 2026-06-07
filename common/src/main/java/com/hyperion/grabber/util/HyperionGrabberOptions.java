@@ -13,8 +13,15 @@ public class HyperionGrabberOptions {
     private final int FRAME_RATE;
     private final boolean USE_AVERAGE_COLOR;
     private final int BLACK_THRESHOLD = 5; // The limit each RGB value must be under to be considered a black pixel [0-255]
+    private final int BLACK_HOLD_MS; // how long a black screen is sent before the last colour is held instead
 
     public HyperionGrabberOptions(int horizontalLED, int verticalLED, int frameRate, boolean useAvgColor) {
+        this(horizontalLED, verticalLED, frameRate, useAvgColor, 2000);
+    }
+
+    public HyperionGrabberOptions(int horizontalLED, int verticalLED, int frameRate, boolean useAvgColor,
+                                  int blackHoldMs) {
+        BLACK_HOLD_MS = Math.max(0, blackHoldMs);
 
         /*
         * To determine the minimal acceptable image packet size we take the count of the width & height
@@ -81,4 +88,7 @@ public class HyperionGrabberOptions {
     }
 
     public int getBlackThreshold() { return BLACK_THRESHOLD; }
+
+    /** @return how long (ms) an all-black screen is sent before the last non-black frame is held. */
+    public int getBlackHoldMs() { return BLACK_HOLD_MS; }
 }

@@ -25,7 +25,14 @@ class HyperionThread(
     private val reconnectEnabled = AtomicBoolean(reconnect)
     private val connected = AtomicBoolean(false)
     private val clientRef = AtomicReference<HyperionClient>()
-    private val executor: ExecutorService = Executors.newSingleThreadExecutor()
+    // Run the send loop at display priority so socket writes keep up with capture under heavy load
+    // (e.g. while the device decodes a high-bitrate video) instead of being scheduled as background.
+    private val executor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
+        Thread({
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_DISPLAY)
+            runnable.run()
+        }, "HyperionSend")
+    }
     
     @Volatile
     private var pendingTask: Future<*>? = null

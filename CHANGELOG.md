@@ -1,6 +1,23 @@
 
 
 
+# [v2.6.0]
+### Changes
+- Renamed the application to **Hyperion reGrabber**
+- Reworked screen capture to be event-driven (`ImageReader.OnImageAvailableListener`) instead of a fixed-rate polling loop, throttled to the configured capture rate
+- Raised the capture thread from background to display priority so it isn't starved while the device decodes high-bitrate video
+- Raised the network send thread to display priority as well
+- Reduced the idle keep-alive resend from the full frame rate to a lightweight ~4 Hz heartbeat
+- Removed per-frame allocations on the FlatBuffers send path (reused length-prefix buffer, writes the backing array directly) and coalesced the header + payload into a single write per frame
+- Added a **"Hold LEDs on Black Screen"** setting (mobile and TV): a fully black screen is shown for a configurable number of seconds before the LEDs hold the last non-black frame, so the lights no longer drop to the default colour when a video is paused (0 = hold instantly)
+
+### Fixed
+- Heavy frame drops during high-resolution / high-frame-rate playback on Android TV
+- LEDs reverting to the default colour when a video player pauses and blanks its surface
+- `isConnected()` no longer reports a closed socket as connected, improving reconnection after sleep/wake
+
+---
+
 # [v2.0.1]
 ### Changes
 - APKs are now signed 
