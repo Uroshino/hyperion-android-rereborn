@@ -148,7 +148,7 @@ internal class BasicSettingsStepFragment : SettingsStepBaseFragment() {
 
         val blackHold = unSignedNumberAction(
                 ACTION_BLACK_HOLD,
-                getString(CommonR.string.pref_title_black_hold),
+                getString(CommonR.string.pref_title_black_hold) + " (seconds)",
                 prefs.getInt(CommonR.string.pref_key_black_hold).toString()
         )
 
