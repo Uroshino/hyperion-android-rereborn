@@ -10,6 +10,10 @@
 - Reduced the idle keep-alive resend from the full frame rate to a lightweight ~4 Hz heartbeat
 - Removed per-frame allocations on the FlatBuffers send path (reused length-prefix buffer, writes the backing array directly) and coalesced the header + payload into a single write per frame
 - Added a **"Hold LEDs on Black Screen"** setting (mobile and TV): a fully black screen is shown for a configurable number of seconds before the LEDs hold the last non-black frame, so the lights no longer drop to the default colour when a video is paused (0 = hold instantly)
+- **Raised the minimum Android version to 12 (API 31)** and stripped every pre-Android-12 compatibility branch and annotation for less per-call overhead and a smaller binary
+- **Leaner release build**: enabled R8 code minification + resource shrinking, and dropped the now-unnecessary Jetifier, multidex and vector-support-library build flags
+- **Average-color mode** now offloads the downscaling to the GPU (renders into a tiny ~32×18 capture surface) instead of averaging a full 128×72 frame on the CPU — far less work for weak TV CPUs
+- Removed the dead `WRITE_EXTERNAL_STORAGE` permission (was already capped below the new minimum)
 
 ### Fixed
 - Heavy frame drops during high-resolution / high-frame-rate playback on Android TV

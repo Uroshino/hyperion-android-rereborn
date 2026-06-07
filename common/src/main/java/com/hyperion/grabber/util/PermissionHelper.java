@@ -19,35 +19,28 @@ public class PermissionHelper {
     private static final String TAG = "PermissionHelper";
     
     public static boolean isIgnoringBatteryOptimizations(Context context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
-            return pm != null && pm.isIgnoringBatteryOptimizations(context.getPackageName());
-        }
-        return true;
+        PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+        return pm != null && pm.isIgnoringBatteryOptimizations(context.getPackageName());
     }
-    
+
     public static void requestIgnoreBatteryOptimizations(Activity activity) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            try {
-                Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
-                intent.setData(Uri.parse("package:" + activity.getPackageName()));
-                activity.startActivity(intent);
-            } catch (Exception e) {
-                Log.e(TAG, "Cannot request battery optimization exemption", e);
-            }
+        try {
+            Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+            intent.setData(Uri.parse("package:" + activity.getPackageName()));
+            activity.startActivity(intent);
+        } catch (Exception e) {
+            Log.e(TAG, "Cannot request battery optimization exemption", e);
         }
     }
-    
+
     public static boolean hasProjectMediaPermission(Context context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            try {
-                AppOpsManager appOps = (AppOpsManager) context.getSystemService(Context.APP_OPS_SERVICE);
-                int mode = appOps.checkOpNoThrow("android:project_media", 
-                        android.os.Process.myUid(), context.getPackageName());
-                return mode == AppOpsManager.MODE_ALLOWED;
-            } catch (Exception e) {
-                Log.w(TAG, "Cannot check PROJECT_MEDIA permission", e);
-            }
+        try {
+            AppOpsManager appOps = (AppOpsManager) context.getSystemService(Context.APP_OPS_SERVICE);
+            int mode = appOps.checkOpNoThrow("android:project_media",
+                    android.os.Process.myUid(), context.getPackageName());
+            return mode == AppOpsManager.MODE_ALLOWED;
+        } catch (Exception e) {
+            Log.w(TAG, "Cannot check PROJECT_MEDIA permission", e);
         }
         return true;
     }

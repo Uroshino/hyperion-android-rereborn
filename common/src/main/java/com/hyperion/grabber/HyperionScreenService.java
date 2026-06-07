@@ -1,7 +1,5 @@
 package com.hyperion.grabber.common;
 
-import android.annotation.TargetApi;
-import android.app.ForegroundServiceStartNotAllowedException;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.Service;
@@ -18,7 +16,6 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.PowerManager;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.core.app.ServiceCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import android.util.DisplayMetrics;
@@ -111,7 +108,7 @@ public class HyperionScreenService extends Service {
                 break;
                 case Intent.ACTION_CONFIGURATION_CHANGED:
                     if (DEBUG) Log.v(TAG, "ACTION_CONFIGURATION_CHANGED intent received");
-                    if (mHyperionEncoder != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    if (mHyperionEncoder != null) {
                         if (DEBUG) Log.v(TAG, "Configuration changed, checking orientation");
                         mHyperionEncoder.setOrientation(getResources().getConfiguration().orientation);
                     }
@@ -133,7 +130,6 @@ public class HyperionScreenService extends Service {
         super.onCreate();
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private boolean prepared() {
         Preferences prefs = new Preferences(getBaseContext());
         String host = prefs.getString(R.string.pref_key_host, null);
@@ -177,7 +173,6 @@ public class HyperionScreenService extends Service {
         return true;
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (DEBUG) Log.v(TAG, "Start command received");
@@ -267,12 +262,8 @@ public class HyperionScreenService extends Service {
         mForegroundFailed = false;
         
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                ServiceCompat.startForeground(this, NOTIFICATION_ID, getNotification(),
-                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
-            } else {
-                startForeground(NOTIFICATION_ID, getNotification());
-            }
+            ServiceCompat.startForeground(this, NOTIFICATION_ID, getNotification(),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
             return true;
         } catch (Exception e) {
             Log.e(TAG, "Foreground start failed: " + e.getMessage());
@@ -282,12 +273,8 @@ public class HyperionScreenService extends Service {
         if (mForegroundFailed) {
             try {
                 Thread.sleep(100);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    ServiceCompat.startForeground(this, NOTIFICATION_ID, getNotification(),
-                            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
-                } else {
-                    startForeground(NOTIFICATION_ID, getNotification());
-                }
+                ServiceCompat.startForeground(this, NOTIFICATION_ID, getNotification(),
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
                 mForegroundFailed = false;
                 return true;
             } catch (Exception e) {
@@ -336,12 +323,8 @@ public class HyperionScreenService extends Service {
     private void haltStartup() {
         // Try to start foreground to show error, but don't fail if blocked
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                ServiceCompat.startForeground(this, NOTIFICATION_ID, getNotification(),
-                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
-            } else {
-                startForeground(NOTIFICATION_ID, getNotification());
-            }
+            ServiceCompat.startForeground(this, NOTIFICATION_ID, getNotification(),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
         } catch (Exception e) {
             Log.w(TAG, "Could not start foreground during halt: " + e.getMessage());
         }
@@ -370,7 +353,6 @@ public class HyperionScreenService extends Service {
         return notification.buildNotification();
     }
 
-    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     private void startScreenRecord(final Intent intent) {
         if (DEBUG) Log.v(TAG, "Starting screen recorder");
         final int resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, 0);
@@ -416,7 +398,6 @@ public class HyperionScreenService extends Service {
         }
     }
 
-    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     private void releaseResource() {
         if (sMediaProjection != null) {
             sMediaProjection.stop();

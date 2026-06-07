@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Resource-shrinker safelist. Preferences.kt resolves these by NAME at runtime via
+  Resources.getIdentifier("pref_default_*"/"pref_key_*"), which the shrinker cannot see as a
+  static reference, so they must be kept explicitly or the app falls back to wrong defaults.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@integer/pref_default_*,@bool/pref_default_*,@string/pref_key_*"
+    tools:shrinkMode="safe" />

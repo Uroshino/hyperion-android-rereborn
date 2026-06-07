@@ -1,6 +1,5 @@
 package com.hyperion.grabber.common;
 
-import android.annotation.TargetApi;
 import android.graphics.PixelFormat;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
@@ -8,11 +7,9 @@ import android.media.Image;
 import android.media.ImageReader;
 import android.media.MediaCodec;
 import android.media.projection.MediaProjection;
-import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.SystemClock;
-import androidx.annotation.RequiresApi;
 import android.util.Log;
 
 import com.hyperion.grabber.common.network.HyperionThread;
@@ -21,7 +18,6 @@ import com.hyperion.grabber.common.util.HyperionGrabberOptions;
 
 import java.nio.ByteBuffer;
 
-@TargetApi(Build.VERSION_CODES.LOLLIPOP)
 public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
     private static final String TAG = "HyperionScreenEncoder";
     private static final boolean DEBUG = false;
@@ -39,6 +35,11 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
     private static final int BLACK_FRAME_AVG = 6;
     // Sample stride (in pixels) used for the cheap black-frame test.
     private static final int BLACK_SAMPLE_STRIDE = 16;
+
+    // Average-color mode renders into this tiny surface and lets the GPU do the downscale, so the
+    // CPU only averages a few hundred pixels and the readback is ~2KB instead of ~36KB per frame.
+    private static final int AVG_CAPTURE_WIDTH = 32;
+    private static final int AVG_CAPTURE_HEIGHT = 18;
 
     // Capture components
     private VirtualDisplay mVirtualDisplay;
@@ -163,13 +164,19 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
     }
 
     private void initCaptureDimensions() {
+        if (mAvgColor) {
+            // Let the GPU collapse the whole screen into a tiny surface; orientation only sets aspect.
+            final boolean portrait = getGrabberHeight() > getGrabberWidth();
+            mCaptureWidth = (portrait ? AVG_CAPTURE_HEIGHT : AVG_CAPTURE_WIDTH) & ~1;
+            mCaptureHeight = (portrait ? AVG_CAPTURE_WIDTH : AVG_CAPTURE_HEIGHT) & ~1;
+            return;
+        }
         int w = Math.max(4, Math.min(getGrabberWidth(), 128));
         int h = Math.max(4, Math.min(getGrabberHeight(), 72));
         mCaptureWidth = w & ~1;
         mCaptureHeight = h & ~1;
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private void init() throws MediaCodec.CodecException {
         // Capture must keep up with video playback, so it runs at display priority rather than
         // background priority — a background-priority thread gets starved while the TV decodes a
@@ -237,7 +244,9 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
 
     private void updateBorderDetection(ByteBuffer buffer, int width, int height,
                                         int rowStride, int pixelStride) {
-        if (!mRemoveBorders && !mAvgColor) return;
+        // Border detection is only meaningful for full-resolution pixel capture; the average-color
+        // path now renders into a tiny GPU-downscaled surface where per-edge analysis is pointless.
+        if (!mRemoveBorders) return;
 
         if (++mFrameCount >= BORDER_CHECK_FRAMES) {
             mFrameCount = 0;
@@ -394,9 +403,10 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
         long r = 0, g = 0, b = 0;
         int count = 0;
 
-        for (int y = startY; y < endY; y += 4) {
+        // The surface is already tiny (≈32x18) thanks to the GPU downscale, so average every pixel.
+        for (int y = startY; y < endY; y++) {
             final int rowOff = y * rowStride;
-            for (int x = startX; x < endX; x += 4) {
+            for (int x = startX; x < endX; x++) {
                 final int off = rowOff + x * pixelStride;
                 r += buffer.get(off) & 0xFF;
                 g += buffer.get(off + 1) & 0xFF;
@@ -409,7 +419,7 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
             mAvgColorResult[0] = (byte) (r / count);
             mAvgColorResult[1] = (byte) (g / count);
             mAvgColorResult[2] = (byte) (b / count);
-            final boolean black = ((r + g + b) / count) < BLACK_FRAME_AVG;
+            final boolean black = (r + g + b) / (count * 3L) < BLACK_FRAME_AVG;
             dispatchFrame(mAvgColorResult, 3, 1, 1, black);
         }
     }
@@ -477,7 +487,6 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
     }
 
     @Override
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public void setOrientation(int orientation) {
         if (mVirtualDisplay == null || orientation == mCurrentOrientation) return;
 

@@ -14,7 +14,6 @@ import android.graphics.Color;
 import android.media.projection.MediaProjectionManager;
 import android.os.Build;
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
@@ -50,16 +49,13 @@ public class MainActivity extends AppCompatActivity implements ImageView.OnClick
             mRecorderRunning = checked;
             String error = intent.getStringExtra(HyperionScreenService.BROADCAST_ERROR);
             
-            if (error != null &&
-                    (Build.VERSION.SDK_INT < Build.VERSION_CODES.N ||
-                            !HyperionGrabberTileService.isListening())) {
+            if (error != null && !HyperionGrabberTileService.isListening()) {
                 Toast.makeText(getBaseContext(), error, Toast.LENGTH_LONG).show();
             }
             setImageViews(checked, checked);
         }
     };
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -111,7 +107,6 @@ public class MainActivity extends AppCompatActivity implements ImageView.OnClick
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     public void onClick(View view) {
         if (!mRecorderRunning) {
@@ -147,7 +142,6 @@ public class MainActivity extends AppCompatActivity implements ImageView.OnClick
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);

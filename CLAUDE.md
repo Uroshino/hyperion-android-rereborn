@@ -15,7 +15,7 @@ Use the Gradle wrapper (Gradle 8.10.2, AGP 8.2.1, Kotlin 1.9.22, **JDK 17 requir
 
 ```bash
 ./gradlew assembleDebug          # build debug APKs (app + common)
-./gradlew assembleRelease        # release build (note: minifyEnabled false)
+./gradlew assembleRelease        # release build (R8 minify + resource shrink — smoke-test the APK)
 ./gradlew :app:assembleDebug     # build only the app module
 ./gradlew test                   # JVM unit tests (junit4)
 ./gradlew :app:testDebugUnitTest # unit tests for one module/variant
@@ -109,8 +109,15 @@ not part of the build.
 
 ## SDK / compatibility constraints
 
-`minSdk 21`, `targetSdk 34`, `compileSdk 34`. Much of the service code branches on `Build.VERSION`
-for Android 12+/13+ requirements: `FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION`, `POST_NOTIFICATIONS`,
-and immutable `PendingIntent` flags. Preserve these guards when touching service, notification, or
-permission code (see `PermissionHelper`). `android.nonTransitiveRClass=true` is set, so reference R
-classes from the correct module's namespace.
+`minSdk 31` (Android 12 — the hard floor; do **not** reintroduce pre-31 branches), `targetSdk 34`,
+`compileSdk 34`. Because 31 is the minimum, the only runtime `Build.VERSION` checks that remain are
+for `TIRAMISU` (33+): runtime `POST_NOTIFICATIONS` and the `getPackageInfo`/`getPackageManager`
+flag overloads. Everything Android-12-and-below is unconditional (foreground-service type, immutable
+`PendingIntent` flags, notification channels). `android.nonTransitiveRClass=true` is set, so
+reference R classes from the correct module's namespace.
+
+Release builds run **R8** (`minifyEnabled true` + `shrinkResources true`, `proguard-android-optimize.txt`).
+Keep rules live in `app/proguard-rules.pro` (FlatBuffers `hyperionnet.**` + runtime, Leanback,
+capture service/encoder). `app/src/main/res/raw/keep.xml` safelists the `pref_default_*` / `pref_key_*`
+resources that `Preferences.kt` resolves dynamically via `getIdentifier` — without it the shrinker
+would strip them and defaults would break. Smoke-test a release (minified) APK after touching these.

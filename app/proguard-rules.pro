@@ -12,10 +12,22 @@
 #   public *;
 #}
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Keep crash line numbers useful while still obfuscating.
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# --- FlatBuffers protocol classes ---
+# The hyperionnet.* classes are generated from Hyperion's flatbuffer schema and are
+# constructed/encoded reflection-free, but keep them (and the flatbuffers runtime) intact so
+# field offsets and the wire format are never altered by optimisation.
+-keep class hyperionnet.** { *; }
+-keep class com.google.flatbuffers.** { *; }
+
+# --- Leanback ---
+# Leanback inflates GuidedStep / presenter classes by name in places; keep them and their views.
+-keep class androidx.leanback.** { *; }
+-dontwarn androidx.leanback.**
+
+# --- Screen-capture service/encoder: touched via framework callbacks; keep intact. ---
+-keep class com.hyperion.grabber.common.HyperionScreenService { *; }
+-keep class com.hyperion.grabber.common.HyperionScreenEncoder { *; }

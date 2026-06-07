@@ -5,21 +5,18 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import android.text.TextUtils
 import android.widget.Toast
-import androidx.annotation.RequiresApi
 import androidx.core.app.TaskStackBuilder
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.hyperion.grabber.common.BootActivity
 import com.hyperion.grabber.common.HyperionScreenService
 import com.hyperion.grabber.common.util.Preferences
 
-@RequiresApi(api = Build.VERSION_CODES.N)
 class HyperionGrabberTileService : TileService() {
     private val REMOVE_LISTENER_DELAY = 10000L // 10 second delay to remove listener
     private val mHandle = Handler(Looper.getMainLooper())
@@ -31,13 +28,11 @@ class HyperionGrabberTileService : TileService() {
             val error = intent.getStringExtra(HyperionScreenService.BROADCAST_ERROR)
             tile.state = if (running) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
             
-            // Helpful feature: Show WLED / Hyperion text on tile subtitle if available (API 29+)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val prefs = Preferences(applicationContext)
-                val wledEnabled = prefs.getBoolean(com.hyperion.grabber.common.R.string.pref_key_wled_enabled)
-                tile.subtitle = if (wledEnabled) "WLED" else "Hyperion"
-            }
-            
+            // Show WLED / Hyperion text on the tile subtitle
+            val prefs = Preferences(applicationContext)
+            val wledEnabled = prefs.getBoolean(com.hyperion.grabber.common.R.string.pref_key_wled_enabled)
+            tile.subtitle = if (wledEnabled) "WLED" else "Hyperion"
+
             tile.updateTile()
             if (error != null) {
                 Toast.makeText(baseContext, error, Toast.LENGTH_LONG).show()
@@ -66,13 +61,11 @@ class HyperionGrabberTileService : TileService() {
         } else {
             val tile = qsTile ?: return
             tile.state = Tile.STATE_INACTIVE
-            
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val prefs = Preferences(applicationContext)
-                val wledEnabled = prefs.getBoolean(com.hyperion.grabber.common.R.string.pref_key_wled_enabled)
-                tile.subtitle = if (wledEnabled) "WLED" else "Hyperion"
-            }
-            
+
+            val prefs = Preferences(applicationContext)
+            val wledEnabled = prefs.getBoolean(com.hyperion.grabber.common.R.string.pref_key_wled_enabled)
+            tile.subtitle = if (wledEnabled) "WLED" else "Hyperion"
+
             tile.updateTile()
         }
     }
