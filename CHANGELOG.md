@@ -3,7 +3,7 @@
 
 # [v2.6.0]
 ### Changes
-- Renamed the application to **Hyperion reGrabber**
+- Renamed the application to **Hyperion reGrabber** and changed the package id to `com.hyperion.regrabber` (installs as a separate app from the original `com.hyperion.grabber`)
 - Reworked screen capture to be event-driven (`ImageReader.OnImageAvailableListener`) instead of a fixed-rate polling loop, throttled to the configured capture rate
 - Raised the capture thread from background to display priority so it isn't starved while the device decodes high-bitrate video
 - Raised the network send thread to display priority as well
