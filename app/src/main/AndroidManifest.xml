@@ -27,7 +27,7 @@
         </activity>
 
         <activity
-            android:name="com.hyperion.grabber.tv.activities.MainActivity"
+            android:name="com.hyperion.regrabber.tv.activities.MainActivity"
             android:launchMode="singleTop"
             android:exported="true"
             android:theme="@style/Theme.Leanback">
@@ -48,18 +48,18 @@
         </activity>
 
         <activity
-            android:name="com.hyperion.grabber.tv.activities.NetworkScanActivity"
+            android:name="com.hyperion.regrabber.tv.activities.NetworkScanActivity"
             android:exported="true"
             android:theme="@style/MyOnboardingTheme" />
         <activity
-            android:name="com.hyperion.grabber.tv.activities.ScanResultActivity"
+            android:name="com.hyperion.regrabber.tv.activities.ScanResultActivity"
             android:exported="true"/>
         <activity
-            android:name="com.hyperion.grabber.tv.activities.ManualSetupActivity"
-            android:parentActivityName="com.hyperion.grabber.tv.activities.MainActivity"
+            android:name="com.hyperion.regrabber.tv.activities.ManualSetupActivity"
+            android:parentActivityName="com.hyperion.regrabber.tv.activities.MainActivity"
             android:exported="true"/>
 
-        <activity android:name="com.hyperion.grabber.common.BootActivity"
+        <activity android:name="com.hyperion.regrabber.common.BootActivity"
             android:finishOnTaskLaunch ="true"
             android:noHistory="true"
             android:launchMode="singleInstance"
@@ -70,7 +70,7 @@
 
         <activity
             android:label="@string/toggle_activity_label"
-            android:name="com.hyperion.grabber.common.ToggleActivity"
+            android:name="com.hyperion.regrabber.common.ToggleActivity"
             android:icon="@drawable/ic_notification_icon"
             android:theme="@style/Theme.Transparent"
             android:launchMode="singleTop"

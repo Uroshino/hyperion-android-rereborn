@@ -31,18 +31,18 @@ An Android SDK is required: set `ANDROID_HOME` or create `local.properties` with
 
 Two Gradle modules (`settings.gradle`):
 
-- **`:common`** (`com.android.library`, namespace `com.hyperion.grabber.common`) — the entire grabber
+- **`:common`** (`com.android.library`, namespace `com.hyperion.regrabber.common`) — the entire grabber
   engine: capture service, screen encoder, networking, preferences. This is where almost all real
   logic lives.
-- **`:app`** (`com.android.application`, namespace `com.hyperion.grabber`, applicationId
-  `com.hyperion.grabber`) — UI only. Depends on `:common` via `api project(':common')`.
+- **`:app`** (`com.android.application`, namespace `com.hyperion.regrabber`, applicationId
+  `com.hyperion.regrabber`) — UI only. Depends on `:common` via `api project(':common')`.
 
 ### Package vs. directory gotcha (important)
 
-In `:common`, the on-disk directory is `common/src/main/java/com/hyperion/grabber/...` but the
-declared package is **`com.hyperion.grabber.common`** (the directory does not contain a `common/`
+In `:common`, the on-disk directory is `common/src/main/java/com/hyperion/regrabber/...` but the
+declared package is **`com.hyperion.regrabber.common`** (the directory does not contain a `common/`
 segment). When referencing these classes from `:app` or the manifest, use the fully-qualified
-`com.hyperion.grabber.common.*` name (e.g. `com.hyperion.grabber.common.HyperionScreenService`),
+`com.hyperion.regrabber.common.*` name (e.g. `com.hyperion.regrabber.common.HyperionScreenService`),
 **not** the directory path. The `hyperionnet` package is the exception — directory and package match.
 
 ## Architecture: the capture → stream pipeline
@@ -64,7 +64,7 @@ MediaProjection (user-granted screen capture)
 Key points when modifying this path:
 
 - **`HyperionScreenService`** is controlled by `Intent` actions (`ACTION_START` / `ACTION_STOP` /
-  `ACTION_EXIT` / `GET_STATUS`, all prefixed `com.hyperion.grabber.service.`) and reports status/errors
+  `ACTION_EXIT` / `GET_STATUS`, all prefixed `com.hyperion.regrabber.service.`) and reports status/errors
   back to UI via `LocalBroadcastManager` (`BROADCAST_FILTER`, `BROADCAST_TAG`, `BROADCAST_ERROR`).
   The `MediaProjection` result code/intent are passed in as extras. It holds a `WakeLock` and pauses
   on screen-off.
@@ -80,11 +80,11 @@ Key points when modifying this path:
 
 One application, two launcher entry points declared in `app/src/main/AndroidManifest.xml`:
 
-- **Mobile**: `com.hyperion.grabber.MainActivity` (LAUNCHER) + `SettingsActivity`
+- **Mobile**: `com.hyperion.regrabber.MainActivity` (LAUNCHER) + `SettingsActivity`
   (`AppCompatPreferenceActivity` / androidx preferences). Also exposes a **Quick Settings tile**
   (`HyperionGrabberTileService`) and a transparent **`ToggleActivity`** launcher shortcut to
   start/stop the grabber.
-- **Android TV**: `com.hyperion.grabber.tv.activities.MainActivity` (LEANBACK_LAUNCHER) plus a
+- **Android TV**: `com.hyperion.regrabber.tv.activities.MainActivity` (LEANBACK_LAUNCHER) plus a
   GuidedStep-based setup wizard under `tv/` — `NetworkScanActivity` → `ScanResultActivity` /
   `ManualSetupActivity`, with `tv/fragments/settings/*StepFragment`.
 - **Boot autostart**: `HyperionGrabberBootReceiver` (BOOT_COMPLETED) launches the grabber via

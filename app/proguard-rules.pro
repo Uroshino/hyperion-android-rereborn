@@ -29,5 +29,5 @@
 -dontwarn androidx.leanback.**
 
 # --- Screen-capture service/encoder: touched via framework callbacks; keep intact. ---
--keep class com.hyperion.grabber.common.HyperionScreenService { *; }
--keep class com.hyperion.grabber.common.HyperionScreenEncoder { *; }
+-keep class com.hyperion.regrabber.common.HyperionScreenService { *; }
+-keep class com.hyperion.regrabber.common.HyperionScreenEncoder { *; }
