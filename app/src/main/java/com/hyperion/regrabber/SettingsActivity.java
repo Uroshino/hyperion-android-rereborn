@@ -40,8 +40,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             prefResourceID == com.hyperion.regrabber.common.R.string.pref_key_priority ||
             prefResourceID == com.hyperion.regrabber.common.R.string.pref_key_x_led ||
             prefResourceID == com.hyperion.regrabber.common.R.string.pref_key_y_led ||
-            prefResourceID == com.hyperion.regrabber.common.R.string.pref_key_framerate ||
-            prefResourceID == com.hyperion.regrabber.common.R.string.pref_key_black_hold) {
+            prefResourceID == com.hyperion.regrabber.common.R.string.pref_key_framerate) {
             try {
                 Integer.parseInt(value.toString());
             } catch (NumberFormatException e) {
@@ -51,8 +50,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
         }
 
         String stringValue = value.toString();
-        if (prefResourceID == com.hyperion.regrabber.common.R.string.pref_key_black_hold ||
-            prefResourceID == com.hyperion.regrabber.common.R.string.pref_key_reconnect_delay) {
+        if (prefResourceID == com.hyperion.regrabber.common.R.string.pref_key_reconnect_delay) {
             // Show the value with its unit (e.g. "2 seconds"). Leave the descriptive summary in
             // place until a value actually exists so a fresh install doesn't read " seconds".
             if (!stringValue.isEmpty()) {
@@ -150,7 +148,6 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             bindPreferenceSummaryToValue(findPreference(getString(com.hyperion.regrabber.common.R.string.pref_key_reconnect_delay)));
             bindPreferenceSummaryToValue(findPreference(getString(com.hyperion.regrabber.common.R.string.pref_key_x_led)));
             bindPreferenceSummaryToValue(findPreference(getString(com.hyperion.regrabber.common.R.string.pref_key_y_led)));
-            bindPreferenceSummaryToValue(findPreference(getString(com.hyperion.regrabber.common.R.string.pref_key_black_hold)));
         }
 
         @Override

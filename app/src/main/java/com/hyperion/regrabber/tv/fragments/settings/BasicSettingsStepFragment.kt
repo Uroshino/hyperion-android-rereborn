@@ -57,6 +57,28 @@ internal class BasicSettingsStepFragment : SettingsStepBaseFragment() {
                 prefs.getInt(CommonR.string.pref_key_y_led).toString()
         )
 
+        val multiplierLabels = resources.getStringArray(CommonR.array.pref_list_led_multiplier)
+        val multiplierValues = resources.getStringArray(CommonR.array.pref_list_led_multiplier_values)
+
+        val selectedMultiplier = prefs.getString(CommonR.string.pref_key_led_multiplier, "1")
+
+        val multiplierDescription =
+                if (prefs.contains(CommonR.string.pref_key_led_multiplier)){
+                    multiplierLabels[multiplierValues.indexOf(selectedMultiplier)]
+                } else {
+                    getString(CommonR.string.pref_summary_led_multiplier)
+                }
+
+        val ledMultiplier = radioListAction(
+                ACTION_LED_MULTIPLIER,
+                getString(CommonR.string.pref_title_led_multiplier),
+                multiplierDescription,
+                ACTION_LED_MULTIPLIER_SET_ID,
+                multiplierLabels,
+                multiplierValues,
+                selectedMultiplier
+        )
+
         val startOnBootEnabled = prefs.getBoolean(CommonR.string.pref_key_boot)
 
         val startOnBoot = GuidedAction.Builder(context)
@@ -146,23 +168,17 @@ internal class BasicSettingsStepFragment : SettingsStepBaseFragment() {
                 .checked(prefs.getBoolean(CommonR.string.pref_key_use_avg_color))
                 .build()
 
-        val blackHold = unSignedNumberAction(
-                ACTION_BLACK_HOLD,
-                getString(CommonR.string.pref_title_black_hold) + " (seconds)",
-                prefs.getInt(CommonR.string.pref_key_black_hold).toString()
-        )
-
         actions.add(enterHost)
         actions.add(enterPort)
         actions.add(enterHorizontalLEDCount)
         actions.add(enterVerticalLEDCount)
+        actions.add(ledMultiplier)
         actions.add(startOnBoot)
         actions.add(advancedInfo)
         actions.add(priority)
         actions.add(reconnectGroup)
         actions.add(captureRate)
         actions.add(averageColor)
-        actions.add(blackHold)
 
     }
 
@@ -186,25 +202,25 @@ internal class BasicSettingsStepFragment : SettingsStepBaseFragment() {
                 val port = assertIntValue(ACTION_PORT)
                 val xLED = assertIntValue(ACTION_X_LED_COUNT)
                 val yLED = assertIntValue(ACTION_Y_LED_COUNT)
+                val ledMultiplier = assertSubActionValue(ACTION_LED_MULTIPLIER, String::class.java)
                 val startOnBootEnabled = findActionById(ACTION_START_ON_BOOT).isChecked
                 val priority = assertIntValue(ACTION_MESSAGE_PRIORITY)
                 val frameRate = assertSubActionValue(ACTION_CAPTURE_RATE, String::class.java)
                 val reconnect = findSubActionById(ACTION_RECONNECT)!!.isChecked
                 val reconnectDelay = assertIntValue(ACTION_RECONNECT_DELAY)
                 val useAverageColor = findActionById(ACTION_AVERAGE_COLOR)!!.isChecked
-                val blackHold = assertIntValue(ACTION_BLACK_HOLD)
 
                 prefs.putString(CommonR.string.pref_key_host, host)
                 prefs.putInt(CommonR.string.pref_key_port, port)
                 prefs.putInt(CommonR.string.pref_key_x_led, xLED)
                 prefs.putInt(CommonR.string.pref_key_y_led, yLED)
+                prefs.putString(CommonR.string.pref_key_led_multiplier, ledMultiplier)
                 prefs.putBoolean(CommonR.string.pref_key_boot, startOnBootEnabled)
                 prefs.putInt(CommonR.string.pref_key_priority, priority)
                 prefs.putInt(CommonR.string.pref_key_reconnect_delay, reconnectDelay)
                 prefs.putString(CommonR.string.pref_key_framerate, frameRate)
                 prefs.putBoolean(CommonR.string.pref_key_reconnect, reconnect)
                 prefs.putBoolean(CommonR.string.pref_key_use_avg_color, useAverageColor)
-                prefs.putInt(CommonR.string.pref_key_black_hold, blackHold)
 
                 val activity = activity
                 activity?.setResult(Activity.RESULT_OK)
@@ -271,6 +287,8 @@ internal class BasicSettingsStepFragment : SettingsStepBaseFragment() {
         private const val ACTION_START_ON_BOOT = 120L
         private const val ACTION_X_LED_COUNT = 130L
         private const val ACTION_Y_LED_COUNT = 140L
+        private const val ACTION_LED_MULTIPLIER = 150L
+        private const val ACTION_LED_MULTIPLIER_SET_ID = 1600
         private const val ACTION_RECONNECT_GROUP = 200L
         private const val ACTION_RECONNECT = 210L
         private const val ACTION_RECONNECT_DELAY = 220L
@@ -278,7 +296,6 @@ internal class BasicSettingsStepFragment : SettingsStepBaseFragment() {
         private const val ACTION_CAPTURE_RATE = 400L
         private const val ACTION_CAPTURE_RATE_SET_ID = 1500
         private const val ACTION_AVERAGE_COLOR = 600L
-        private const val ACTION_BLACK_HOLD = 500L
 
         private const val ACTION_TEST = 700L
 
