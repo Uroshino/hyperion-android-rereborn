@@ -52,11 +52,14 @@ abstract class HyperionScreenEncoderBase {
         mCurrentOrientation = mInitOrientation = 
                 width > height ? Configuration.ORIENTATION_LANDSCAPE : Configuration.ORIENTATION_PORTRAIT;
 
-        // Capture at exactly the configured LED grid (horizontal x vertical) times the multiplier,
-        // so the image is divided into that many cells. The raw screen size is no longer used to pick
-        // a divisor — these dimensions come straight from the user's LED counts.
-        mWidthScaled = options.getOutputWidth();
-        mHeightScaled = options.getOutputHeight();
+        // Capture at an integer downscale of the screen, so the capture preserves the screen's EXACT
+        // aspect ratio. If the surface aspect didn't match the display, the VirtualDisplay would
+        // letterbox/pillarbox it, and those bar regions (left un-cleared between frames) leak
+        // stale/garbage data into the captured edges — exactly what Hyperion samples for the border
+        // LEDs. The configured LED grid (counts × multiplier) only selects which downscale to use.
+        final int[] capture = options.computeCaptureSize(width, height);
+        mWidthScaled = capture[0];
+        mHeightScaled = capture[1];
 
         // Handler thread for callbacks
         final HandlerThread thread = new HandlerThread(TAG, Process.THREAD_PRIORITY_DISPLAY);

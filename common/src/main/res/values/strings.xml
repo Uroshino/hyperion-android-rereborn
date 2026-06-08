@@ -43,7 +43,7 @@
   <string name="pref_title_x_led">Horizontal LED Count</string>
   <string name="pref_summary_x_led">The horizontal count of LEDs on your hardware</string>
   <string name="pref_title_led_multiplier">Capture Detail</string>
-  <string name="pref_summary_led_multiplier">Multiplies the LED counts to capture a finer image. x2 with 78×40 grabs 156×80. Higher is sharper but heavier.</string>
+  <string name="pref_summary_led_multiplier">Multiplies the capture resolution for a finer image (x2 = twice the detail per axis). Higher is sharper but heavier. The screen\'s aspect ratio is always preserved.</string>
   <string name="pref_title_priority">Message Priority</string>
   <string name="pref_summary_priority">Message priority channel to use</string>
   <string name="pref_title_reconnect">Reconnect</string>

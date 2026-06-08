@@ -10,8 +10,8 @@
 - Reduced the idle keep-alive resend from the full frame rate to a lightweight ~4 Hz heartbeat
 - Removed per-frame allocations on the FlatBuffers send path (reused length-prefix buffer, writes the backing array directly) and coalesced the header + payload into a single write per frame
 - Black scenes now turn the LEDs **off in realtime** instead of holding the last colour: the idle heartbeat resends the frame that is actually on screen (black included) rather than the last bright frame, so a black movie scene goes dark immediately
-- Added a **"Capture Detail"** multiplier setting (`x1`–`x4`, mobile and TV): the screen is grabbed at exactly the horizontal × vertical LED grid, and the multiplier refines it (e.g. `78×40` at `x2` grabs `156×80`) for a smoother result on dense LED setups
-- The horizontal/vertical LED counts now drive the captured image size directly (image divided into exactly that many cells) instead of only setting a minimum packet size that an auto-divisor had to clear
+- Added a **"Capture Detail"** multiplier setting (`x1`–`x4`, mobile and TV): the horizontal × vertical LED grid (times the multiplier) sets the capture resolution for a smoother result on dense LED setups
+- The horizontal/vertical LED counts (× multiplier) now select the capture resolution directly instead of only setting a minimum packet size that an auto-divisor had to clear. The capture is always an integer downscale of the screen, so it preserves the screen's **exact** aspect ratio — the VirtualDisplay never letterboxes black/garbage bars into the edge pixels the border LEDs sample
 - **Raised the minimum Android version to 12 (API 31)** and stripped every pre-Android-12 compatibility branch and annotation for less per-call overhead and a smaller binary
 - **Leaner release build**: enabled R8 code minification + resource shrinking, and dropped the now-unnecessary Jetifier, multidex and vector-support-library build flags
 - **Average-color mode** now offloads the downscaling to the GPU (renders into a tiny ~32×18 capture surface) instead of averaging a full 128×72 frame on the CPU — far less work for weak TV CPUs

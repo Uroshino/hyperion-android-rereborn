@@ -184,8 +184,8 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
             mCaptureHeight = (portrait ? AVG_CAPTURE_WIDTH : AVG_CAPTURE_HEIGHT) & ~1;
             return;
         }
-        // Capture at exactly the configured grid (LED counts * multiplier). HyperionGrabberOptions
-        // already clamps these to a sane range and forces them even, so use them directly.
+        // Aspect-preserving capture size derived from the configured grid (see
+        // HyperionScreenEncoderBase). Already even; clamp to a 4px floor and keep even.
         mCaptureWidth = Math.max(4, getGrabberWidth()) & ~1;
         mCaptureHeight = Math.max(4, getGrabberHeight()) & ~1;
     }
