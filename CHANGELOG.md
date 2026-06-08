@@ -9,6 +9,8 @@
 - Raised the network send thread to display priority as well
 - Reduced the idle keep-alive resend from the full frame rate to a lightweight ~4 Hz heartbeat
 - Removed per-frame allocations on the FlatBuffers send path (reused length-prefix buffer, writes the backing array directly) and coalesced the header + payload into a single write per frame
+- Serialize the captured frame into the FlatBuffer with a single bulk copy (`createByteVector`) instead of the generated per-byte vector builder (tens of thousands of calls per frame at high detail)
+- Capture frames into a small rotating buffer pool and extract straight into it: removes one full-frame copy per frame and fixes a data race where the capture thread could overwrite a frame the network thread was still serializing (torn frames)
 - Black scenes now turn the LEDs **off in realtime** instead of holding the last colour: the idle heartbeat resends the frame that is actually on screen (black included) rather than the last bright frame, so a black movie scene goes dark immediately
 - Added a **"Capture Detail"** multiplier setting (`x1`–`x4`, mobile and TV): the horizontal × vertical LED grid (times the multiplier) sets the capture resolution for a smoother result on dense LED setups
 - The horizontal/vertical LED counts (× multiplier) now select the capture resolution directly instead of only setting a minimum packet size that an auto-divisor had to clear. The capture is always an integer downscale of the screen, so it preserves the screen's **exact** aspect ratio — the VirtualDisplay never letterboxes black/garbage bars into the edge pixels the border LEDs sample

@@ -36,6 +36,13 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
     // Sample stride (in pixels) used for the cheap black-frame test.
     private static final int BLACK_SAMPLE_STRIDE = 16;
 
+    // Rotating pool of frame buffers. Each frame is extracted straight into the next pooled buffer
+    // and that buffer is handed to the network thread, so the capture thread never overwrites a
+    // buffer the network thread is still serializing (the send is coalesced to the latest frame, so
+    // only the most-recently-handed buffer is ever read — rotating a few buffers keeps it stable
+    // until the serialization, which is far faster than the frame interval, has finished).
+    private static final int FRAME_POOL_SIZE = 3;
+
     // Average-color mode renders into this tiny surface and lets the GPU do the downscale, so the
     // CPU only averages a few hundred pixels and the readback is ~2KB instead of ~36KB per frame.
     private static final int AVG_CAPTURE_WIDTH = 32;
@@ -49,30 +56,26 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
     private volatile boolean mRunning;
     private int mCaptureWidth;
     private int mCaptureHeight;
-    private byte[] mRgbBuffer;
+    private final byte[][] mFramePool = new byte[FRAME_POOL_SIZE][];
+    private int mFramePoolIdx;
     private byte[] mRowBuffer;
-    private final byte[] mAvgColorResult = new byte[3];
     private int mBorderX;
     private int mBorderY;
     private int mFrameCount;
 
     // The last frame actually transmitted, black or not. The heartbeat resends THIS, so the LEDs
     // hold whatever is currently on screen — including black, so a black scene stays dark instead of
-    // snapping back to the last bright colour. Always points at a stable buffer (mLastGoodFrame or
-    // mBlackFrame), never the reused capture buffers.
+    // snapping back to the last bright colour. Points at a pooled buffer (or mLastGoodFrame while
+    // holding), never the per-row scratch.
     private byte[] mLastSentFrame;
     private int mLastSentWidth;
     private int mLastSentHeight;
 
     // Last non-black frame (stable copy). Only used by the "hold on black" feature to keep the LEDs
-    // lit when a video player blanks the screen; unused when black-hold is disabled.
+    // lit when a video player blanks the screen; only populated when black-hold is enabled.
     private byte[] mLastGoodFrame;
     private int mLastGoodWidth;
     private int mLastGoodHeight;
-
-    // Stable copy of a forwarded black frame, so the heartbeat can keep resending black after the
-    // (static) black screen stops producing new frames.
-    private byte[] mBlackFrame;
 
     // Timestamps (uptimeMillis); only touched on the capture thread.
     private long mLastSentMs;
@@ -281,18 +284,39 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
 
         if (effWidth <= 0 || effHeight <= 0) return;
 
-        final byte[] rgb = extractRgb(buffer, width, height, rowStride, pixelStride, bx, by, effWidth, effHeight);
         final int frameSize = effWidth * effHeight * BYTES_PER_PIXEL_RGB;
+        // Extract straight into a pooled buffer (no intermediate copy) and hand that buffer off.
+        final byte[] rgb = nextFrameBuffer(frameSize);
+        extractRgb(rgb, buffer, width, height, rowStride, pixelStride, bx, by, effWidth, effHeight);
         dispatchFrame(rgb, frameSize, effWidth, effHeight, isRgbBlack(rgb, frameSize));
     }
 
+    /** Returns the next buffer in the rotating pool, (re)allocating it to {@code length} if needed. */
+    private byte[] nextFrameBuffer(int length) {
+        byte[] buf = mFramePool[mFramePoolIdx];
+        if (buf == null || buf.length != length) {
+            buf = new byte[length];
+            mFramePool[mFramePoolIdx] = buf;
+        }
+        mFramePoolIdx = (mFramePoolIdx + 1) % FRAME_POOL_SIZE;
+        return buf;
+    }
+
+    private void clearFramePool() {
+        for (int i = 0; i < mFramePool.length; i++) {
+            mFramePool[i] = null;
+        }
+        mFramePoolIdx = 0;
+    }
+
     /**
-     * Decides what to actually transmit for a freshly captured frame.
-     * <p>Non-black frames are copied into {@link #mLastGoodFrame} and sent. Black frames are
-     * forwarded so the LEDs go dark with the screen. The optional "hold on black" feature
-     * ({@link #mBlackHoldMs} &gt; 0) instead holds the last non-black frame once the screen has been
-     * black for the configured grace period, so a paused/blanked video player doesn't drop the LEDs;
-     * when it is 0 the feature is disabled and black is always shown as black.
+     * Decides what to actually transmit for a freshly captured frame. {@code data} is already a
+     * stable pooled buffer, so it can be handed off without copying.
+     * <p>Non-black frames are forwarded as-is. Black frames are forwarded so the LEDs go dark with
+     * the screen. The optional "hold on black" feature ({@link #mBlackHoldMs} &gt; 0) instead holds
+     * the last non-black frame once the screen has been black for the configured grace period, so a
+     * paused/blanked video player doesn't drop the LEDs; when it is 0 the feature is disabled and
+     * black is always shown as black.
      * <p>Whatever is chosen becomes {@link #mLastSentFrame}, which the heartbeat resends so the LEDs
      * hold the current content (black included) even after a static screen stops producing frames.
      */
@@ -307,17 +331,19 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
                 markSent(mLastGoodFrame, mLastGoodWidth, mLastGoodHeight, now);
                 return;
             }
-            // Forward the black frame so the LEDs actually go dark.
-            mBlackFrame = copyStable(mBlackFrame, data, length);
-            markSent(mBlackFrame, width, height, now);
+            markSent(data, width, height, now);
             return;
         }
 
         mBlackSinceMs = 0;
-        mLastGoodFrame = copyStable(mLastGoodFrame, data, length);
-        mLastGoodWidth = width;
-        mLastGoodHeight = height;
-        markSent(mLastGoodFrame, width, height, now);
+        if (mBlackHoldMs > 0) {
+            // Hold-on-black is enabled: keep a stable copy of this frame, since the pooled buffer it
+            // lives in will be recycled within a few frames. Skipped entirely when holding is off.
+            mLastGoodFrame = copyStable(mLastGoodFrame, data, length);
+            mLastGoodWidth = width;
+            mLastGoodHeight = height;
+        }
+        markSent(data, width, height, now);
     }
 
     /** Records the given stable buffer as the current frame, transmits it, and arms the heartbeat. */
@@ -350,15 +376,9 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
         return samples > 0 && (sum / samples) < BLACK_FRAME_AVG;
     }
 
-    private byte[] extractRgb(ByteBuffer buffer, int width, int height,
-                              int rowStride, int pixelStride,
-                              int bx, int by, int effWidth, int effHeight) {
-        final int rgbSize = effWidth * effHeight * BYTES_PER_PIXEL_RGB;
-
-        if (mRgbBuffer == null || mRgbBuffer.length < rgbSize) {
-            mRgbBuffer = new byte[rgbSize];
-        }
-
+    private void extractRgb(byte[] dst, ByteBuffer buffer, int width, int height,
+                            int rowStride, int pixelStride,
+                            int bx, int by, int effWidth, int effHeight) {
         final int endY = height - by;
         final int endX = width - bx;
         int rgbIdx = 0;
@@ -379,23 +399,23 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
                 int i = 0;
                 final int unrollLimit = rowBytes - 15;
                 for (; i < unrollLimit; i += 16) {
-                    mRgbBuffer[rgbIdx++] = mRowBuffer[i];
-                    mRgbBuffer[rgbIdx++] = mRowBuffer[i + 1];
-                    mRgbBuffer[rgbIdx++] = mRowBuffer[i + 2];
-                    mRgbBuffer[rgbIdx++] = mRowBuffer[i + 4];
-                    mRgbBuffer[rgbIdx++] = mRowBuffer[i + 5];
-                    mRgbBuffer[rgbIdx++] = mRowBuffer[i + 6];
-                    mRgbBuffer[rgbIdx++] = mRowBuffer[i + 8];
-                    mRgbBuffer[rgbIdx++] = mRowBuffer[i + 9];
-                    mRgbBuffer[rgbIdx++] = mRowBuffer[i + 10];
-                    mRgbBuffer[rgbIdx++] = mRowBuffer[i + 12];
-                    mRgbBuffer[rgbIdx++] = mRowBuffer[i + 13];
-                    mRgbBuffer[rgbIdx++] = mRowBuffer[i + 14];
+                    dst[rgbIdx++] = mRowBuffer[i];
+                    dst[rgbIdx++] = mRowBuffer[i + 1];
+                    dst[rgbIdx++] = mRowBuffer[i + 2];
+                    dst[rgbIdx++] = mRowBuffer[i + 4];
+                    dst[rgbIdx++] = mRowBuffer[i + 5];
+                    dst[rgbIdx++] = mRowBuffer[i + 6];
+                    dst[rgbIdx++] = mRowBuffer[i + 8];
+                    dst[rgbIdx++] = mRowBuffer[i + 9];
+                    dst[rgbIdx++] = mRowBuffer[i + 10];
+                    dst[rgbIdx++] = mRowBuffer[i + 12];
+                    dst[rgbIdx++] = mRowBuffer[i + 13];
+                    dst[rgbIdx++] = mRowBuffer[i + 14];
                 }
                 for (; i < rowBytes; i += BYTES_PER_PIXEL_RGBA) {
-                    mRgbBuffer[rgbIdx++] = mRowBuffer[i];
-                    mRgbBuffer[rgbIdx++] = mRowBuffer[i + 1];
-                    mRgbBuffer[rgbIdx++] = mRowBuffer[i + 2];
+                    dst[rgbIdx++] = mRowBuffer[i];
+                    dst[rgbIdx++] = mRowBuffer[i + 1];
+                    dst[rgbIdx++] = mRowBuffer[i + 2];
                 }
             }
 
@@ -405,14 +425,12 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
                 final int rowOff = y * rowStride;
                 for (int x = bx; x < endX; x++) {
                     final int off = rowOff + x * pixelStride;
-                    mRgbBuffer[rgbIdx++] = buffer.get(off);
-                    mRgbBuffer[rgbIdx++] = buffer.get(off + 1);
-                    mRgbBuffer[rgbIdx++] = buffer.get(off + 2);
+                    dst[rgbIdx++] = buffer.get(off);
+                    dst[rgbIdx++] = buffer.get(off + 1);
+                    dst[rgbIdx++] = buffer.get(off + 2);
                 }
             }
         }
-
-        return mRgbBuffer;
     }
 
     private void sendAverageColor(ByteBuffer buffer, int width, int height,
@@ -442,11 +460,12 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
         }
 
         if (count > 0) {
-            mAvgColorResult[0] = (byte) (r / count);
-            mAvgColorResult[1] = (byte) (g / count);
-            mAvgColorResult[2] = (byte) (b / count);
+            final byte[] avg = nextFrameBuffer(BYTES_PER_PIXEL_RGB);
+            avg[0] = (byte) (r / count);
+            avg[1] = (byte) (g / count);
+            avg[2] = (byte) (b / count);
             final boolean black = (r + g + b) / (count * 3L) < BLACK_FRAME_AVG;
-            dispatchFrame(mAvgColorResult, 3, 1, 1, black);
+            dispatchFrame(avg, BYTES_PER_PIXEL_RGB, 1, 1, black);
         }
     }
 
@@ -475,7 +494,7 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
             mCaptureHandler = null;
         }
 
-        mRgbBuffer = null;
+        clearFramePool();
         mRowBuffer = null;
         mLastSentFrame = null;
         mLastSentWidth = 0;
@@ -483,7 +502,6 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
         mLastGoodFrame = null;
         mLastGoodWidth = 0;
         mLastGoodHeight = 0;
-        mBlackFrame = null;
         mBorderX = 0;
         mBorderY = 0;
         mFrameCount = 0;
@@ -547,11 +565,10 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
 
         mVirtualDisplay.setSurface(mImageReader.getSurface());
 
-        mRgbBuffer = null;
+        clearFramePool();
         mRowBuffer = null;
         mLastSentFrame = null;
         mLastGoodFrame = null;
-        mBlackFrame = null;
 
         startCapture();
     }

@@ -90,7 +90,10 @@ class HyperionFlatBuffers(address: String?, port: Int, priority: Int) : Hyperion
     @Throws(IOException::class)
     override fun setImage(data: ByteArray, width: Int, height: Int, priority: Int, duration_ms: Int) {
         mBuilder.clear()
-        val dataOffset = RawImage.createDataVector(mBuilder, data)
+        // Bulk copy of the pixel array into the FlatBuffer. The generated createDataVector() appends
+        // one byte at a time (tens of thousands of calls per frame at high detail); createByteVector()
+        // does the same as a single bulk put.
+        val dataOffset = mBuilder.createByteVector(data)
         val rawImageOffset = RawImage.createRawImage(mBuilder, dataOffset, width, height)
         val imageOffset = Image.createImage(mBuilder, ImageType.RawImage, rawImageOffset, duration_ms)
         val requestOffset = Request.createRequest(mBuilder, Command.Image, imageOffset)
