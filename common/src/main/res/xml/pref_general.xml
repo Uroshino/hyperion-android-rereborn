@@ -112,6 +112,12 @@
             android:positiveButtonText="@null"
             android:title="@string/pref_title_led_multiplier" />
 
+        <Preference
+            android:key="@string/pref_key_resolution_info"
+            android:persistent="false"
+            android:selectable="false"
+            android:title="@string/pref_title_resolution_info" />
+
         <ListPreference
             android:defaultValue="@integer/pref_default_framerate"
             android:entries="@array/pref_list_framerate"

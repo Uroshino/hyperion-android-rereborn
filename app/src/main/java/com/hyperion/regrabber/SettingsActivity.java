@@ -1,6 +1,7 @@
 package com.hyperion.regrabber;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
@@ -10,6 +11,9 @@ import androidx.appcompat.app.ActionBar;
 import android.view.MenuItem;
 import android.widget.Toast;
 import java.lang.reflect.Field;
+
+import com.hyperion.regrabber.common.util.CaptureResolutionInfo;
+import com.hyperion.regrabber.common.util.Preferences;
 
 /**
  * A {@link PreferenceActivity} that presents a set of application settings. On
@@ -130,7 +134,8 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
      * This fragment shows general preferences only. It is used when the
      * activity is showing a two-pane settings UI.
      */
-    public static class GeneralPreferenceFragment extends PreferenceFragment {
+    public static class GeneralPreferenceFragment extends PreferenceFragment
+            implements SharedPreferences.OnSharedPreferenceChangeListener {
         @Override
         public void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
@@ -148,6 +153,44 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             bindPreferenceSummaryToValue(findPreference(getString(com.hyperion.regrabber.common.R.string.pref_key_reconnect_delay)));
             bindPreferenceSummaryToValue(findPreference(getString(com.hyperion.regrabber.common.R.string.pref_key_x_led)));
             bindPreferenceSummaryToValue(findPreference(getString(com.hyperion.regrabber.common.R.string.pref_key_y_led)));
+
+            updateResolutionInfo();
+        }
+
+        @Override
+        public void onResume() {
+            super.onResume();
+            getPreferenceManager().getSharedPreferences()
+                    .registerOnSharedPreferenceChangeListener(this);
+            // Re-read in case the display (e.g. orientation) changed while away.
+            updateResolutionInfo();
+        }
+
+        @Override
+        public void onPause() {
+            getPreferenceManager().getSharedPreferences()
+                    .unregisterOnSharedPreferenceChangeListener(this);
+            super.onPause();
+        }
+
+        @Override
+        public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+            // The LED counts and the capture-detail factor all change the streamed resolution.
+            if (key == null) return;
+            if (key.equals(getString(com.hyperion.regrabber.common.R.string.pref_key_x_led))
+                    || key.equals(getString(com.hyperion.regrabber.common.R.string.pref_key_y_led))
+                    || key.equals(getString(com.hyperion.regrabber.common.R.string.pref_key_led_multiplier))) {
+                updateResolutionInfo();
+            }
+        }
+
+        /** Refreshes the read-only "Resolution" summary from the current preferences + display size. */
+        private void updateResolutionInfo() {
+            final Preference info =
+                    findPreference(getString(com.hyperion.regrabber.common.R.string.pref_key_resolution_info));
+            if (info != null && getActivity() != null) {
+                info.setSummary(CaptureResolutionInfo.describe(getActivity(), new Preferences(getActivity())));
+            }
         }
 
         @Override

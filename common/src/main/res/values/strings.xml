@@ -44,6 +44,9 @@
   <string name="pref_summary_x_led">The horizontal count of LEDs on your hardware</string>
   <string name="pref_title_led_multiplier">Capture Detail</string>
   <string name="pref_summary_led_multiplier">Multiplies the capture resolution for a finer image (x2 = twice the detail per axis). Higher is sharper but heavier. The screen\'s aspect ratio is always preserved.</string>
+  <string name="pref_title_resolution_info">Resolution</string>
+  <!-- %1=display w, %2=display h, %3=horizontal LEDs, %4=vertical LEDs, %5=factor, %6=sent w, %7=sent h -->
+  <string name="resolution_info_format">Display: %1$d×%2$d\nLEDs: %3$d × %4$d  •  factor x%5$d\nSent to Hyperion: %6$d×%7$d</string>
   <string name="pref_title_priority">Message Priority</string>
   <string name="pref_summary_priority">Message priority channel to use</string>
   <string name="pref_title_reconnect">Reconnect</string>

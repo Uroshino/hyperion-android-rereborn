@@ -15,6 +15,8 @@
     <string name="pref_key_x_led" translatable="false">pref_key_x_led</string>
     <integer name="pref_default_x_led" translatable="false">60</integer>
 
+    <string name="pref_key_resolution_info" translatable="false">pref_key_resolution_info</string>
+
     <string name="pref_key_led_multiplier" translatable="false">pref_key_led_multiplier</string>
     <integer name="pref_default_led_multiplier" translatable="false">1</integer>
     <string-array name="pref_list_led_multiplier_values" translatable="false">

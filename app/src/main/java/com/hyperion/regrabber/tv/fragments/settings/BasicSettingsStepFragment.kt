@@ -8,6 +8,7 @@ import androidx.leanback.widget.GuidanceStylist
 import androidx.leanback.widget.GuidedAction
 import android.widget.Toast
 import com.hyperion.regrabber.common.network.HyperionFlatBuffers
+import com.hyperion.regrabber.common.util.CaptureResolutionInfo
 import com.hyperion.regrabber.R
 import com.hyperion.regrabber.common.R as CommonR
 import java.lang.ref.WeakReference
@@ -78,6 +79,16 @@ internal class BasicSettingsStepFragment : SettingsStepBaseFragment() {
                 multiplierValues,
                 selectedMultiplier
         )
+
+        val resolutionInfo = GuidedAction.Builder(context)
+                .id(ACTION_RESOLUTION_INFO)
+                .title(getString(CommonR.string.pref_title_resolution_info))
+                .description(captureInfoText())
+                .multilineDescription(true)
+                .focusable(false)
+                .infoOnly(true)
+                .enabled(false)
+                .build()
 
         val startOnBootEnabled = prefs.getBoolean(CommonR.string.pref_key_boot)
 
@@ -173,6 +184,7 @@ internal class BasicSettingsStepFragment : SettingsStepBaseFragment() {
         actions.add(enterHorizontalLEDCount)
         actions.add(enterVerticalLEDCount)
         actions.add(ledMultiplier)
+        actions.add(resolutionInfo)
         actions.add(startOnBoot)
         actions.add(advancedInfo)
         actions.add(priority)
@@ -180,6 +192,34 @@ internal class BasicSettingsStepFragment : SettingsStepBaseFragment() {
         actions.add(captureRate)
         actions.add(averageColor)
 
+    }
+
+    /**
+     * Builds the "Display / LEDs / Sent" summary from the values currently entered in the wizard
+     * (falling back to saved preferences for any field not yet present, e.g. during initial build).
+     */
+    private fun captureInfoText(): String {
+        val horizontal = findActionById(ACTION_X_LED_COUNT)?.description?.toString()?.trim()?.toIntOrNull()
+                ?: prefs.getInt(CommonR.string.pref_key_x_led)
+        val vertical = findActionById(ACTION_Y_LED_COUNT)?.description?.toString()?.trim()?.toIntOrNull()
+                ?: prefs.getInt(CommonR.string.pref_key_y_led)
+        val selected = findActionById(ACTION_LED_MULTIPLIER)?.subActions?.find { it.isChecked }
+        val factor = (selected as? ValueGuidedAction)?.value?.toString()?.toIntOrNull()
+                ?: prefs.getInt(CommonR.string.pref_key_led_multiplier).coerceAtLeast(1)
+        return CaptureResolutionInfo.describe(requireContext(), horizontal, vertical, factor)
+    }
+
+    private fun refreshResolutionInfo() {
+        val info = findActionById(ACTION_RESOLUTION_INFO) ?: return
+        info.description = captureInfoText()
+        notifyActionIdChanged(ACTION_RESOLUTION_INFO)
+    }
+
+    override fun onGuidedActionEditedAndProceed(action: GuidedAction): Long {
+        if (action.id == ACTION_X_LED_COUNT || action.id == ACTION_Y_LED_COUNT) {
+            refreshResolutionInfo()
+        }
+        return super.onGuidedActionEditedAndProceed(action)
     }
 
     override fun onCreateButtonActions(actions: MutableList<GuidedAction>, savedInstanceState: Bundle?) {
@@ -269,6 +309,9 @@ internal class BasicSettingsStepFragment : SettingsStepBaseFragment() {
             action is ValueGuidedAction && action.parentId != null -> {
                 findActionById(action.parentId).description = action.title
                 notifyActionIdChanged(action.parentId)
+                if (action.parentId == ACTION_LED_MULTIPLIER) {
+                    refreshResolutionInfo()
+                }
             }
         }
 
@@ -289,6 +332,7 @@ internal class BasicSettingsStepFragment : SettingsStepBaseFragment() {
         private const val ACTION_Y_LED_COUNT = 140L
         private const val ACTION_LED_MULTIPLIER = 150L
         private const val ACTION_LED_MULTIPLIER_SET_ID = 1600
+        private const val ACTION_RESOLUTION_INFO = 160L
         private const val ACTION_RECONNECT_GROUP = 200L
         private const val ACTION_RECONNECT = 210L
         private const val ACTION_RECONNECT_DELAY = 220L
