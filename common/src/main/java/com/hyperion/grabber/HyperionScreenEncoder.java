@@ -56,11 +56,23 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
     private int mBorderY;
     private int mFrameCount;
 
-    // Last non-black frame, reused both as the stable buffer handed to the network thread and as the
-    // frame resent by the heartbeat while the screen is idle.
+    // The last frame actually transmitted, black or not. The heartbeat resends THIS, so the LEDs
+    // hold whatever is currently on screen — including black, so a black scene stays dark instead of
+    // snapping back to the last bright colour. Always points at a stable buffer (mLastGoodFrame or
+    // mBlackFrame), never the reused capture buffers.
+    private byte[] mLastSentFrame;
+    private int mLastSentWidth;
+    private int mLastSentHeight;
+
+    // Last non-black frame (stable copy). Only used by the "hold on black" feature to keep the LEDs
+    // lit when a video player blanks the screen; unused when black-hold is disabled.
     private byte[] mLastGoodFrame;
     private int mLastGoodWidth;
     private int mLastGoodHeight;
+
+    // Stable copy of a forwarded black frame, so the heartbeat can keep resending black after the
+    // (static) black screen stops producing new frames.
+    private byte[] mBlackFrame;
 
     // Timestamps (uptimeMillis); only touched on the capture thread.
     private long mLastSentMs;
@@ -70,6 +82,7 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
     private final long mFrameIntervalMs;
     // User-configurable: how long a sustained black screen is forwarded before the last non-black
     // frame is held instead (so a paused/blanked video player doesn't drop the LEDs to default).
+    // 0 disables holding entirely — black is always shown as black and the LEDs go dark.
     private final long mBlackHoldMs;
 
     /**
@@ -83,8 +96,8 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
             if (!mRunning || mCaptureHandler == null) return;
 
             final long now = SystemClock.uptimeMillis();
-            if (mLastGoodFrame != null && now - mLastSentMs >= HEARTBEAT_MS) {
-                mListener.sendFrame(mLastGoodFrame, mLastGoodWidth, mLastGoodHeight);
+            if (mLastSentFrame != null && now - mLastSentMs >= HEARTBEAT_MS) {
+                mListener.sendFrame(mLastSentFrame, mLastSentWidth, mLastSentHeight);
                 mLastSentMs = now;
             }
             mCaptureHandler.postDelayed(this, HEARTBEAT_MS);
@@ -171,10 +184,10 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
             mCaptureHeight = (portrait ? AVG_CAPTURE_WIDTH : AVG_CAPTURE_HEIGHT) & ~1;
             return;
         }
-        int w = Math.max(4, Math.min(getGrabberWidth(), 128));
-        int h = Math.max(4, Math.min(getGrabberHeight(), 72));
-        mCaptureWidth = w & ~1;
-        mCaptureHeight = h & ~1;
+        // Capture at exactly the configured grid (LED counts * multiplier). HyperionGrabberOptions
+        // already clamps these to a sane range and forces them even, so use them directly.
+        mCaptureWidth = Math.max(4, getGrabberWidth()) & ~1;
+        mCaptureHeight = Math.max(4, getGrabberHeight()) & ~1;
     }
 
     private void init() throws MediaCodec.CodecException {
@@ -275,41 +288,54 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
 
     /**
      * Decides what to actually transmit for a freshly captured frame.
-     * <p>Non-black frames are copied into {@link #mLastGoodFrame} (which doubles as a stable buffer
-     * for the network thread and the heartbeat) and sent. Black frames are forwarded for a short
-     * grace period — long enough for genuine fades — but a sustained black screen is suppressed and
-     * the heartbeat holds the last good frame instead, so a paused/blanked video player does not
-     * drop the LEDs to their default colour.
+     * <p>Non-black frames are copied into {@link #mLastGoodFrame} and sent. Black frames are
+     * forwarded so the LEDs go dark with the screen. The optional "hold on black" feature
+     * ({@link #mBlackHoldMs} &gt; 0) instead holds the last non-black frame once the screen has been
+     * black for the configured grace period, so a paused/blanked video player doesn't drop the LEDs;
+     * when it is 0 the feature is disabled and black is always shown as black.
+     * <p>Whatever is chosen becomes {@link #mLastSentFrame}, which the heartbeat resends so the LEDs
+     * hold the current content (black included) even after a static screen stops producing frames.
      */
     private void dispatchFrame(byte[] data, int length, int width, int height, boolean black) {
         final long now = SystemClock.uptimeMillis();
 
         if (black) {
             if (mBlackSinceMs == 0) mBlackSinceMs = now;
-            final boolean sustained = (now - mBlackSinceMs) >= mBlackHoldMs;
-            if (sustained && mLastGoodFrame != null) {
-                // Hold the last good frame: don't send black and don't refresh mLastSentMs, so the
-                // heartbeat keeps the LEDs on the last bright frame.
+            if (mBlackHoldMs > 0 && mLastGoodFrame != null
+                    && (now - mBlackSinceMs) >= mBlackHoldMs) {
+                // Sustained black with holding enabled: keep the LEDs on the last non-black frame.
+                markSent(mLastGoodFrame, mLastGoodWidth, mLastGoodHeight, now);
                 return;
             }
-            mListener.sendFrame(data, width, height);
-            mLastSentMs = now;
+            // Forward the black frame so the LEDs actually go dark.
+            mBlackFrame = copyStable(mBlackFrame, data, length);
+            markSent(mBlackFrame, width, height, now);
             return;
         }
 
         mBlackSinceMs = 0;
-        storeLastGood(data, length, width, height);
-        mListener.sendFrame(mLastGoodFrame, width, height);
+        mLastGoodFrame = copyStable(mLastGoodFrame, data, length);
+        mLastGoodWidth = width;
+        mLastGoodHeight = height;
+        markSent(mLastGoodFrame, width, height, now);
+    }
+
+    /** Records the given stable buffer as the current frame, transmits it, and arms the heartbeat. */
+    private void markSent(byte[] frame, int width, int height, long now) {
+        mLastSentFrame = frame;
+        mLastSentWidth = width;
+        mLastSentHeight = height;
+        mListener.sendFrame(frame, width, height);
         mLastSentMs = now;
     }
 
-    private void storeLastGood(byte[] data, int length, int width, int height) {
-        if (mLastGoodFrame == null || mLastGoodFrame.length != length) {
-            mLastGoodFrame = new byte[length];
+    /** Copies {@code length} bytes of {@code data} into {@code target}, reallocating only if needed. */
+    private static byte[] copyStable(byte[] target, byte[] data, int length) {
+        if (target == null || target.length != length) {
+            target = new byte[length];
         }
-        System.arraycopy(data, 0, mLastGoodFrame, 0, length);
-        mLastGoodWidth = width;
-        mLastGoodHeight = height;
+        System.arraycopy(data, 0, target, 0, length);
+        return target;
     }
 
     /** Cheap sampled test for an (almost) entirely black frame. */
@@ -451,9 +477,13 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
 
         mRgbBuffer = null;
         mRowBuffer = null;
+        mLastSentFrame = null;
+        mLastSentWidth = 0;
+        mLastSentHeight = 0;
         mLastGoodFrame = null;
         mLastGoodWidth = 0;
         mLastGoodHeight = 0;
+        mBlackFrame = null;
         mBorderX = 0;
         mBorderY = 0;
         mFrameCount = 0;
@@ -519,7 +549,9 @@ public final class HyperionScreenEncoder extends HyperionScreenEncoderBase {
 
         mRgbBuffer = null;
         mRowBuffer = null;
+        mLastSentFrame = null;
         mLastGoodFrame = null;
+        mBlackFrame = null;
 
         startCapture();
     }

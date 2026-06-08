@@ -103,6 +103,16 @@
             android:title="@string/pref_title_y_led" />
 
         <ListPreference
+            android:defaultValue="@integer/pref_default_led_multiplier"
+            android:entries="@array/pref_list_led_multiplier"
+            android:entryValues="@array/pref_list_led_multiplier_values"
+            android:key="@string/pref_key_led_multiplier"
+            android:summary="@string/pref_summary_led_multiplier"
+            android:negativeButtonText="@null"
+            android:positiveButtonText="@null"
+            android:title="@string/pref_title_led_multiplier" />
+
+        <ListPreference
             android:defaultValue="@integer/pref_default_framerate"
             android:entries="@array/pref_list_framerate"
             android:entryValues="@array/pref_list_framerate_values"
@@ -117,18 +127,6 @@
             android:key="@string/pref_key_use_avg_color"
             android:title="@string/pref_title_use_avg_color"
             android:summary="@string/pref_summary_use_avg_color" />
-
-        <EditTextPreference
-            android:defaultValue="@integer/pref_default_black_hold"
-            android:hint="@integer/pref_default_black_hold"
-            android:key="@string/pref_key_black_hold"
-            android:maxLines="1"
-            android:numeric="integer"
-            android:inputType="number"
-            android:selectAllOnFocus="true"
-            android:singleLine="true"
-            android:summary="@string/pref_summary_black_hold"
-            android:title="@string/pref_title_black_hold" />
 
     </PreferenceCategory>
 

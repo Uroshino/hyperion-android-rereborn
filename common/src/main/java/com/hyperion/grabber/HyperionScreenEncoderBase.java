@@ -52,10 +52,11 @@ abstract class HyperionScreenEncoderBase {
         mCurrentOrientation = mInitOrientation = 
                 width > height ? Configuration.ORIENTATION_LANDSCAPE : Configuration.ORIENTATION_PORTRAIT;
 
-        // Calculate scaled dimensions
-        final int divisor = options.findDivisor(width, height);
-        mWidthScaled = width / divisor;
-        mHeightScaled = height / divisor;
+        // Capture at exactly the configured LED grid (horizontal x vertical) times the multiplier,
+        // so the image is divided into that many cells. The raw screen size is no longer used to pick
+        // a divisor — these dimensions come straight from the user's LED counts.
+        mWidthScaled = options.getOutputWidth();
+        mHeightScaled = options.getOutputHeight();
 
         // Handler thread for callbacks
         final HandlerThread thread = new HandlerThread(TAG, Process.THREAD_PRIORITY_DISPLAY);

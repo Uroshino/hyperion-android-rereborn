@@ -42,6 +42,8 @@
   <string name="pref_summary_y_led">The vertical count of LEDs on your hardware</string>
   <string name="pref_title_x_led">Horizontal LED Count</string>
   <string name="pref_summary_x_led">The horizontal count of LEDs on your hardware</string>
+  <string name="pref_title_led_multiplier">Capture Detail</string>
+  <string name="pref_summary_led_multiplier">Multiplies the LED counts to capture a finer image. x2 with 78×40 grabs 156×80. Higher is sharper but heavier.</string>
   <string name="pref_title_priority">Message Priority</string>
   <string name="pref_summary_priority">Message priority channel to use</string>
   <string name="pref_title_reconnect">Reconnect</string>
@@ -73,5 +75,5 @@
   <string name="pref_title_use_avg_color">Send Average Screen Color</string>
   <string name="pref_summary_use_avg_color">Sends the average color of your device\'s screen rather than an image of it</string>
   <string name="pref_title_black_hold">Hold LEDs on Black Screen</string>
-  <string name="pref_summary_black_hold">Seconds a fully black screen is shown before the LEDs hold the last colour instead of going dark. Prevents the lights turning off when a video is paused. Set to 0 to hold instantly.</string>
+  <string name="pref_summary_black_hold">Set to 0 (default) the LEDs go dark on black scenes. A positive value keeps the last colour after that many seconds of black, so the lights don\'t turn off when a video is paused.</string>
 </resources>

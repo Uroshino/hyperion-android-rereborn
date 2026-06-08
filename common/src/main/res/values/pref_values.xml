@@ -15,6 +15,21 @@
     <string name="pref_key_x_led" translatable="false">pref_key_x_led</string>
     <integer name="pref_default_x_led" translatable="false">60</integer>
 
+    <string name="pref_key_led_multiplier" translatable="false">pref_key_led_multiplier</string>
+    <integer name="pref_default_led_multiplier" translatable="false">1</integer>
+    <string-array name="pref_list_led_multiplier_values" translatable="false">
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+    </string-array>
+    <string-array name="pref_list_led_multiplier" translatable="false">
+        <item>x1</item>
+        <item>x2</item>
+        <item>x3</item>
+        <item>x4</item>
+    </string-array>
+
     <string name="pref_key_priority" translatable="false">pref_key_priority</string>
     <integer name="pref_default_priority" translatable="false">100</integer>
 
@@ -41,5 +56,5 @@
     <bool name="pref_default_use_avg_color" translatable="false">false</bool>
 
     <string name="pref_key_black_hold" translatable="false">pref_key_black_hold</string>
-    <integer name="pref_default_black_hold" translatable="false">2</integer>
+    <integer name="pref_default_black_hold" translatable="false">0</integer>
 </resources>
